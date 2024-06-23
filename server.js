@@ -77,14 +77,14 @@ app.use((req, res, next) => {
 const authMiddleware = (req, res, next) => {
   const token = req.cookies.token;
   if (!token) {
-    return res.redirect("/login");
+    return res.redirect("/login"); // Redirect to login if token is not present
   }
   try {
     const decoded = jwt.verify(token, "secret");
     req.user = decoded;
-    next();
+    next(); // Proceed to the next middleware if token is valid
   } catch (err) {
-    res.redirect("/login");
+    res.redirect("/login"); // Redirect to login if token is invalid
   }
 };
 
@@ -107,7 +107,12 @@ app.get("/", async (req, res) => {
   }
 });
 
+// Register route
 app.get("/register", (req, res) => {
+  // Check if user is already logged in
+  if (res.locals.loggedIn) {
+    return res.redirect("/profile"); // Redirect to profile if logged in
+  }
   res.render("register", { title: "Sign Up" });
 });
 
@@ -137,7 +142,12 @@ app.post("/register", upload.single("profileImage"), async (req, res) => {
   }
 });
 
+// Login route
 app.get("/login", (req, res) => {
+  // Check if user is already logged in
+  if (res.locals.loggedIn) {
+    return res.redirect("/profile"); // Redirect to profile if logged in
+  }
   res.render("login", { title: "Login" });
 });
 
@@ -156,7 +166,7 @@ app.post("/login", async (req, res) => {
     if (isMatch) {
       const token = jwt.sign({ id: user._id }, "secret", { expiresIn: "1h" });
       res.cookie("token", token, { httpOnly: true });
-      res.redirect("/");
+      res.redirect("/profile"); // Redirect to profile on successful login
     } else {
       res.status(400).send("Invalid username or password");
     }
@@ -166,93 +176,11 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// Logout route
 app.get("/logout", (req, res) => {
   res.clearCookie("token");
   res.redirect("/");
 });
-
-app.get("/create", authMiddleware, (req, res) => {
-  res.render("create", { title: "Create Blog" });
-});
-
-app.post(
-  "/create",
-  authMiddleware,
-  upload.single("image"),
-  async (req, res) => {
-    const { title, content } = req.body;
-    const blog = new Blog({
-      title,
-      content,
-      image: req.file ? `/uploads/${req.file.filename}` : null,
-      author: req.user.id,
-    });
-
-    await blog.save();
-    res.redirect("/");
-  }
-);
-
-app.get("/edit/:id", authMiddleware, async (req, res) => {
-  try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).send("Invalid Blog ID");
-    }
-
-    const blog = await Blog.findById(req.params.id);
-    if (!blog) {
-      return res.status(404).send("Blog not found");
-    }
-
-    if (!blog.author.equals(req.user.id)) {
-      return res.status(403).send("Unauthorized access");
-    }
-
-    res.render("edit", { title: "Edit Blog", blog });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Server Error");
-  }
-});
-
-app.post(
-  "/edit/:id",
-  authMiddleware,
-  upload.single("image"),
-  async (req, res) => {
-    try {
-      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        return res.status(400).send("Invalid Blog ID");
-      }
-
-      const { title, content } = req.body;
-      let image = req.file ? `/uploads/${req.file.filename}` : null;
-
-      const updatedBlog = await Blog.findByIdAndUpdate(
-        req.params.id,
-        {
-          title,
-          content,
-          image,
-        },
-        { new: true }
-      );
-
-      if (!updatedBlog) {
-        return res.status(404).send("Blog not found");
-      }
-
-      if (!updatedBlog.author.equals(req.user.id)) {
-        return res.status(403).send("Unauthorized access");
-      }
-
-      res.redirect("/");
-    } catch (err) {
-      console.error(err);
-      res.status(500).send("Server Error");
-    }
-  }
-);
 
 // Profile route
 app.get("/profile", authMiddleware, async (req, res) => {
@@ -261,7 +189,7 @@ app.get("/profile", authMiddleware, async (req, res) => {
     if (!user) {
       return res.status(404).send("User not found");
     }
-    res.render("profile", { title: "Prolile", user });
+    res.render("profile", { title: "Profile", user });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
