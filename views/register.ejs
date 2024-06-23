@@ -1,16 +1,33 @@
 <%- include('partials/header') %>
-    <div class="container">
-        <div class="row">
-            <h1 class="text-2xl font-bold mb-4">Register</h1>
-            <form action="/register" method="POST" class="bg-white p-4 rounded shadow">
-                <label for="username" class="block text-gray-700">Username</label>
-                <input type="text" name="username" id="username" class="border border-gray-300 p-2 rounded w-full mb-4"
-                    required>
-                <label for="password" class="block text-gray-700">Password</label>
-                <input type="password" name="password" id="password"
-                    class="border border-gray-300 p-2 rounded w-full mb-4" required>
-                <button type="submit" class="bg-blue-500 text-white p-2 rounded">Register</button>
-            </form>
+    <div class="container mt-5 mb-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-6 col-lg-4">
+                <h1 class="text-center mb-4">Sign Up</h1>
+                <form action="/register" method="POST" class="bg-white p-4 rounded shadow"
+                    enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="fullName" class="form-label">Full Name</label>
+                        <input type="text" name="fullName" id="fullName" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" name="email" id="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" name="username" id="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" name="password" id="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="profileImage" class="form-label">Profile Image</label>
+                        <input type="file" name="profileImage" id="profileImage" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+                </form>
+            </div>
         </div>
     </div>
     <%- include('partials/footer') %>

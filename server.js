@@ -37,8 +37,11 @@ mongoose.connect("mongodb://localhost:27017/blogss", {
 const User = mongoose.model(
   "User",
   new mongoose.Schema({
+    fullName: String,
+    email: String,
     username: String,
     password: String,
+    profileImage: String,
   })
 );
 
@@ -93,6 +96,7 @@ app.get("/", async (req, res) => {
       .populate("author", "username");
 
     res.render("index", {
+      title: "Home",
       blogs,
       loggedIn: res.locals.loggedIn,
       user: req.user, // Pass req.user to access user information in EJS
@@ -104,22 +108,26 @@ app.get("/", async (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  res.render("register");
+  res.render("register", { title: "Sign Up" });
 });
 
-app.post("/register", async (req, res) => {
-  const { username, password } = req.body;
+app.post("/register", upload.single("profileImage"), async (req, res) => {
+  const { fullName, email, username, password } = req.body;
+  const profileImage = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
-    if (!username || !password) {
-      console.log(
-        `Username or password missing. Username: ${username}, Password: ${password}`
-      );
-      return res.status(400).send("Username and password are required");
+    if (!fullName || !email || !username || !password || !profileImage) {
+      return res.status(400).send("All fields are required");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword });
+    const user = new User({
+      fullName,
+      email,
+      username,
+      password: hashedPassword,
+      profileImage,
+    });
 
     await user.save();
     res.redirect("/login");
@@ -130,7 +138,7 @@ app.post("/register", async (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  res.render("login");
+  res.render("login", { title: "Login" });
 });
 
 app.post("/login", async (req, res) => {
@@ -140,14 +148,6 @@ app.post("/login", async (req, res) => {
     const user = await User.findOne({ username });
 
     if (!user) {
-      console.log(`User not found for username: ${username}`);
-      return res.status(400).send("Invalid username or password");
-    }
-
-    if (!password || !user.password) {
-      console.log(
-        `Password or hashed password is missing. Password: ${password}, User password: ${user.password}`
-      );
       return res.status(400).send("Invalid username or password");
     }
 
@@ -158,7 +158,6 @@ app.post("/login", async (req, res) => {
       res.cookie("token", token, { httpOnly: true });
       res.redirect("/");
     } else {
-      console.log(`Password mismatch for username: ${username}`);
       res.status(400).send("Invalid username or password");
     }
   } catch (err) {
@@ -173,7 +172,7 @@ app.get("/logout", (req, res) => {
 });
 
 app.get("/create", authMiddleware, (req, res) => {
-  res.render("create");
+  res.render("create", { title: "Create Blog" });
 });
 
 app.post(
@@ -205,12 +204,11 @@ app.get("/edit/:id", authMiddleware, async (req, res) => {
       return res.status(404).send("Blog not found");
     }
 
-    // Check if the current user is the author of the blog
     if (!blog.author.equals(req.user.id)) {
       return res.status(403).send("Unauthorized access");
     }
 
-    res.render("edit", { blog });
+    res.render("edit", { title: "Edit Blog", blog });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
@@ -244,7 +242,6 @@ app.post(
         return res.status(404).send("Blog not found");
       }
 
-      // Check if the current user is the author of the blog
       if (!updatedBlog.author.equals(req.user.id)) {
         return res.status(403).send("Unauthorized access");
       }
@@ -256,6 +253,42 @@ app.post(
     }
   }
 );
+
+// Profile route
+app.get("/profile", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password"); // Exclude password from query result
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    res.render("profile", { title: "Prolile", user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server Error");
+  }
+});
+
+// Update profile route
+app.post("/profile", authMiddleware, async (req, res) => {
+  const { fullName, email, username } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    user.fullName = fullName;
+    user.email = email;
+    user.username = username;
+    await user.save();
+
+    res.redirect("/profile");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server Error");
+  }
+});
 
 // Start server
 app.listen(3000, () => {
