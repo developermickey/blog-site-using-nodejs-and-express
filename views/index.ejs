@@ -1,0 +1,51 @@
+<%- include('partials/header') %>
+
+    <!-- Content -->
+    <div class="container mt-4">
+
+        <div class="container">
+
+            <div class="d-flex flex-wrap gap-1">
+                <% blogs.forEach(blog=> { %>
+                    <div class="col-4 card m-2">
+                        <% if (blog.image) { %>
+                            <img src="<%= blog.image %>" alt="" class="img-fluid rounded">
+                            <% } %>
+                                <div class="card-body">
+                                    <h3 class="card-heading">
+                                        <%= blog.title %>
+                                    </h3>
+                                    <% if (blog.content) { %>
+                                        <p class="card-text">
+                                            <% let words=blog.content.split(' ').slice(0, 15).join(' '); %>
+                                    <%= words %><%= blog.content.split(' ').length > 15 ? ' ...' : '' %>
+                                        </p>
+                                        <% } %>
+                                            <div class="d-flex flex-column justify-content-start align-items-start">
+                                                <div class="row mb-3">
+                                                    <small class="text-body-secondary">
+                                                        By <%= blog.author.username %> on <%=
+                                                                blog.created_at.toLocaleString() %>
+                                                    </small>
+                                                </div>
+                                                <div class="row" style="margin-left: .1rem;">
+                                                    <% if (loggedIn && user && user.id &&
+                                                        user.id.toString()===blog.author._id.toString()) { %>
+                                                        <a href="/edit/<%= blog._id %>" class="btn btn-primary">Edit</a>
+                                                        <% } %>
+                                                </div>
+                                            </div>
+                                </div>
+                    </div>
+                    <% }); %>
+            </div>
+
+
+
+
+        </div>
+
+    </div>
+
+
+    <%- include('partials/footer') %>
